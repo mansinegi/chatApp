@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<link type="text/css" rel="stylesheet" href="css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<title>CHAT ROOM</title>
+	<style type="text/css"></style>
+</head>
+
+<script>
+	jQuery(function($){
+
+		var socket=io();
+
+		$('#setName').click(function(e){
+			e.preventDefault();
+
+			socket.emit("new user", $('#userName').val(), function(data){
+				if(data)
+				{
+					$('#userDetail').hide();
+					$('#content').show();
+					$('#userId').html("Signed in as : "+$('#userName').val());
+				}
+
+				else
+				{
+					$('#userError').html("User name already taken! Try again!");
+				}
+
+			})
+		});
+
+
+		socket.on("user names", function(data){
+			var users="";
+			for(var i=0;i<data.length;i++){
+				users +="<span class=\"glyphicon glyphicon-ok\" style=\"color:green\">"+data[i]+"<br/>";
+			}
+			$('#users').html(users);
+
+		})
+
+
+		$('#send').click(function(e){
+			e.preventDefault();
+			socket.emit("send message", $('#message').val());
+			$('#message').val("");
+		});
+
+		socket.on("new message", function(data){
+			$('#chat').append("<b>"+data.sender+": </b> "+data.msg+"<br/>");
+		});
+
+		socket.on("load old msgs", function(docs){
+			for(var i=docs.length-1; i>=0; i--){
+				var $name=docs[i].name;
+				$('#chat').append("<b>"+$name+": </b> "+docs[i].msg+"<br/>");
+			}
+
+		})
+
+		//private messaging
+		$('#openPrivate').click(function(e){
+			console.log("private");
+			$('#privDetails').show();
+		
+		});
+
+		$('#privateChatButton').click(function(e){
+			
+			if($('#users').text().indexOf($('#privateUser').val()) == -1)
+			{
+				$('#privateError').html("User is not Online !!");
+			}
+
+			else
+			{
+				$('#privateWrap').show();
+				$('#privateHeader').html("Private Chat With "+$('#privateUser').val());
+			}
+		});
+
+		$('#sendPrivateMessage').click(function(e){
+			e.preventDefault();
+			$('#privateChatBox').append("<b>"+$('#userName').val()+" : </b>"+$('#privateMessage').val()+"<br/>");
+			var $msgReceiver = ($('#privateHeader').html().substring(18));
+			socket.emit("private", { sender : $('#userName').val(),receiver : $msgReceiver, msg :$('#privateMessage').val()});
+			$('#privateMessage').val("");
+		});
+
+		socket.on("new private message", function(data){
+			$('#privateWrap').show();
+			$('#privateHeader').html("Private Chat With "+data.sender);
+			$('#privateChatBox').append("<b>"+data.sender+" : </b>"+data.msg+"<br/>");
+			
+		});
+	});
+
+</script>
+<body>
+
+
+	<div id="frontHeader"> Node.js Powered Web Chat <p id="userId" style = "color:green"></p></div>
+	<div id="userDetail">
+		<div id="details">
+			<p id="userHeader">Enter a username : </p>
+			<p id="userError"></p>
+			<form id="setName">
+				<button type="submit" class="btn btn-info" id="submitName">ENTER</button>
+				<input type="text" size="25" id="userName" autofocus></input>
+			</form>
+		</div>
+		
+	</div>
+
+	<div id="content">
+		<div id="chatWrap">
+			<p id="publicHeader" style="margin-left:50px; margin-top : 20px;font-size: 20px;
+		font-weight: bold;">PUBLIC CHAT</p>
+			<div id="chat"></div>
+			<form id="sendMessage">
+				<textarea id="message" rows="4" cols="38"></textarea>
+				<button type="submit" class="btn btn-info" id="send">SEND</button>
+				<button type="button" class="btn btn-warning" id="openPrivate">Open Private Chat></button>
+				<p id="privDetails">Enter a user name to start private chat : 
+					<input type="text" size="20" id="privateUser"></input>
+					<button type="button" class="btn btn-warning" id="privateChatButton">Go!</button>
+				</p>
+				<p id="privateError"></p>
+			</form>
+
+		</div>
+		<div id="allUsers"> 
+			<p style="margin-left:20px; margin-top : 20px;font-size: 20px;font-weight: bold;">CURRENTLY ONLINE</p>
+			<p id="users"></p>	
+		</div>
+		<div id="privateWrap">
+			<p id="privateHeader" style="margin-left:50px; margin-top : 20px;font-size: 20px;font-weight: bold;"></p>
+			<div id="privateChatBox"></div>
+			<form id="sendPrivate">
+				<textarea id="privateMessage" rows="4" cols="38"></textarea>
+				<button type="submit" class="btn btn-info" id="sendPrivateMessage">SEND</button>
+			</form>
+		</div>
+		
+	</div>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
